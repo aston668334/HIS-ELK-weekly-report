@@ -1,0 +1,144 @@
+{
+    "version": true,
+    "size": 500,
+    "sort": [
+      {
+        "@timestamp": {
+          "order": "desc",
+          "unmapped_type": "boolean"
+        }
+      },
+      {
+        "event.duration": {
+          "order": "desc",
+          "unmapped_type": "boolean"
+        }
+      }
+    ],
+    "fields": [
+      {
+        "field": "*",
+        "include_unmapped": "true"
+      },
+      {
+        "field": "@timestamp",
+        "format": "strict_date_optional_time"
+      },
+      {
+        "field": "event.ingested",
+        "format": "strict_date_optional_time"
+      },
+      {
+        "field": "postgresql.activity.backend_start",
+        "format": "strict_date_optional_time"
+      },
+      {
+        "field": "postgresql.activity.query_start",
+        "format": "strict_date_optional_time"
+      },
+      {
+        "field": "postgresql.activity.state_change",
+        "format": "strict_date_optional_time"
+      },
+      {
+        "field": "postgresql.activity.transaction_start",
+        "format": "strict_date_optional_time"
+      },
+      {
+        "field": "postgresql.bgwriter.stats_reset",
+        "format": "strict_date_optional_time"
+      },
+      {
+        "field": "postgresql.database.stats_reset",
+        "format": "strict_date_optional_time"
+      },
+      {
+        "field": "postgresql.log.session_start_time",
+        "format": "strict_date_optional_time"
+      }
+    ],
+    "script_fields": {},
+    "stored_fields": [
+      "*"
+    ],
+    "runtime_mappings": {},
+    "_source": false,
+    "query": {
+      "bool": {
+        "must": [],
+        "filter": [
+          {
+            "bool": {
+              "should": [
+                {
+                  "range": {
+                    "event.duration": {
+                      "gte": "1000000"
+                    }
+                  }
+                }
+              ],
+              "minimum_should_match": 1
+            }
+          },
+          {
+            "bool": {
+              "filter": [
+                {
+                  "bool": {
+                    "should": [
+                      {
+                        "term": {
+                          "container.id": {
+                            "value": "hisdeploy_postgres_logs"
+                          }
+                        }
+                      }
+                    ],
+                    "minimum_should_match": 1
+                  }
+                },
+                {
+                  "bool": {
+                    "should": [
+                      {
+                        "term": {
+                          "agent.name": {
+                            "value": "histesting"
+                          }
+                        }
+                      }
+                    ],
+                    "minimum_should_match": 1
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "range": {
+              "@timestamp": {
+                "format": "strict_date_optional_time",
+                "gte": "2024-05-23T18:58:27.964Z",
+                "lte": "2024-05-30T18:58:27.964Z"
+              }
+            }
+          }
+        ],
+        "should": [],
+        "must_not": []
+      }
+    },
+    "highlight": {
+      "pre_tags": [
+        "@kibana-highlighted-field@"
+      ],
+      "post_tags": [
+        "@/kibana-highlighted-field@"
+      ],
+      "fields": {
+        "*": {}
+      },
+      "fragment_size": 2147483647
+    }
+  }
