@@ -3,13 +3,17 @@ import matplotlib.pyplot as plt
 import os
 from matplotlib.ticker import PercentFormatter
 from ELK_module import elasticsearch_api
+from dotenv import load_dotenv 
+from .Datatemplate import Datatemplate  # Importing Datatemplate class from datatemplate.py
+import os
+load_dotenv()
 
-class DockerCPU:
+class DockerCPU(Datatemplate):  # Inheriting from Datatemplate
     def __init__(self):
-        self.api = elasticsearch_api.elasticsearch_api()
-        self.data = self.api.get_data('./api-json-template/docker-cpu-usage.json') 
-        self.fig = None
-        self.ax = None
+        super().__init__()  # Calling the constructor of the parent class
+        self.json_name = "docker-cpu-usage.json"  # Overriding the json_name attribute
+        self.data = self.api.get_data(os.path.join(self.json_path, self.json_name)) # Using the parent's methods and attributes
+
 
     def prepare_plot(self):
         # Extract the aggregation data

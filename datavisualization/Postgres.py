@@ -1,21 +1,22 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-import os
 from matplotlib.ticker import PercentFormatter
 from ELK_module import elasticsearch_api
+from .Datatemplate import Datatemplate  # Importing Datatemplate class from datatemplate.py
+from dotenv import load_dotenv
+import os
 
-class PostgresLongQuery:
+# Load environment variables from a .env file
+load_dotenv()
 
+class PostgresLongQuery(Datatemplate):
     def __init__(self):
-        self.api = elasticsearch_api.elasticsearch_api()
-        self.data = self.api.get_data('./api-json-template/postgres_duration_table.json') 
+        super().__init__()  # Calling the constructor of the parent class
+        self.json_name = "postgres_duration_table.json"  # Overriding the json_name attribute
+        self.data = self.api.get_data(os.path.join(self.json_path, self.json_name))
 
     def get_dataframe(self):
-
-        hits = self.data.body['hits']['hits']
-        # Extract the 'fields' from each log entry
+        hits = self.data['hits']['hits']
         fields_data = [entry['fields'] for entry in hits]
-        # Normalize the JSON data to create a DataFrame
         df = pd.json_normalize(fields_data)
-
         return df

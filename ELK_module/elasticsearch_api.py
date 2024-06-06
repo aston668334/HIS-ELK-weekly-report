@@ -9,7 +9,7 @@ load_dotenv()
 class elasticsearch_api:
     def __init__(self):
         self.key=os.getenv("ELASTICSEARCH_API_KEY")
-        self.url="https://192.168.101.11:9200"
+        self.url=os.getenv("ELASTICSEARCH_URL")
         self.client = Elasticsearch(
             self.url,  # Elasticsearch endpoint
             api_key=self.key,
