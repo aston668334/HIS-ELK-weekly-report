@@ -1,0 +1,37 @@
+from elasticsearch import Elasticsearch
+import json
+import pandas as pd
+from datetime import datetime, timedelta
+from dotenv import load_dotenv 
+import os
+load_dotenv()
+
+class elasticsearch_api:
+    def __init__(self):
+        self.key=os.getenv("ELASTICSEARCH_API_KEY")
+        self.url="https://192.168.101.11:9200"
+        self.client = Elasticsearch(
+            self.url,  # Elasticsearch endpoint
+            api_key=self.key,
+            verify_certs=False
+        )
+
+
+    def get_data(self,path):
+        with open(path, 'r') as file:
+            query = json.load(file)
+        # Calculate timestamps for gte and lte
+        now = datetime.now()
+        week_ago = now - timedelta(weeks=1)
+
+        # Format timestamps as strings
+        gte_timestamp = week_ago.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        lte_timestamp = now.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+
+        # Update the query with formatted timestamps
+        query['query']['bool']['filter'][2]['range']['@timestamp']['gte'] = gte_timestamp
+        query['query']['bool']['filter'][2]['range']['@timestamp']['lte'] = lte_timestamp
+
+        response = self.client.search(index="*", body=query)
+
+        return response
