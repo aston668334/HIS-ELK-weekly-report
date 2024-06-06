@@ -17,7 +17,7 @@ class elasticsearch_api:
         )
 
 
-    def get_data(self,path):
+    def get_data(self,path,host = None):
         with open(path, 'r') as file:
             query = json.load(file)
         # Calculate timestamps for gte and lte
@@ -31,6 +31,9 @@ class elasticsearch_api:
         # Update the query with formatted timestamps
         query['query']['bool']['filter'][2]['range']['@timestamp']['gte'] = gte_timestamp
         query['query']['bool']['filter'][2]['range']['@timestamp']['lte'] = lte_timestamp
+
+        if host:
+            query['query']['bool']['filter'][0]['match_phrase']['host.name'] = host
 
         response = self.client.search(index="*", body=query)
 

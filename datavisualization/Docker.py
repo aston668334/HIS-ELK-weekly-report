@@ -9,10 +9,11 @@ import os
 load_dotenv()
 
 class DockerCPU(Datatemplate):  # Inheriting from Datatemplate
-    def __init__(self):
+    def __init__(self,host):
         super().__init__()  # Calling the constructor of the parent class
         self.json_name = "docker-cpu-usage.json"  # Overriding the json_name attribute
-        self.data = self.api.get_data(os.path.join(self.json_path, self.json_name)) # Using the parent's methods and attributes
+        self.host = host
+        self.data = self.api.get_data(os.path.join(self.json_path, self.json_name),self.host) # Using the parent's methods and attributes
 
 
     def prepare_plot(self):
@@ -47,7 +48,7 @@ class DockerCPU(Datatemplate):  # Inheriting from Datatemplate
         # Add labels and title
         self.ax.set_xlabel('Time')
         self.ax.set_ylabel('Usage (%)')
-        self.ax.set_title('CPU Usage Over Time')
+        self.ax.set_title('CPU Usage Over Time({})'.format(self.host))
         # Change y-axis to percentage
         self.ax.yaxis.set_major_formatter(PercentFormatter(1.0))
         # Adjust layout
@@ -65,6 +66,7 @@ class DockerCPU(Datatemplate):  # Inheriting from Datatemplate
             if not os.path.exists(output_dir):
                 os.makedirs(output_dir)
             # Save plot to the output directory
+            filename = 'cpu_usage_over_time_{}.png'.format(self.host)
             output_path = os.path.join(output_dir, filename)
             self.fig.savefig(output_path)
         else:
