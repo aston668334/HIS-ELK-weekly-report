@@ -66,14 +66,14 @@
     "query": {
         "bool": {
             "filter": [
-                {"match_phrase": {"host.name": ""}},
+                {"match_phrase": {"host.name": "this_should_be_server_hostname"}},
                 {"match_phrase": {"data_stream.dataset": "system.cpu"}},
                 {
                     "range": {
                         "@timestamp": {
                             "format": "strict_date_optional_time",
-                            "gte": "",
-                            "lte": ""
+                            "gte": "this_should_be_start_time",
+                            "lte": "this_should_be_end_time"
                         }
                     }
                 }

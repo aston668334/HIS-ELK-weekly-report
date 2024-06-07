@@ -104,7 +104,7 @@
                       {
                         "term": {
                           "agent.name": {
-                            "value": "histesting"
+                            "value": "this_should_be_server_hostname"
                           }
                         }
                       }
@@ -119,8 +119,8 @@
             "range": {
               "@timestamp": {
                 "format": "strict_date_optional_time",
-                "gte": "2024-05-23T18:58:27.964Z",
-                "lte": "2024-05-30T18:58:27.964Z"
+              "gte": "this_should_be_start_time",
+              "lte": "this_should_be_end_time"
               }
             }
           }

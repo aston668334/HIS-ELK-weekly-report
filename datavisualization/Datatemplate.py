@@ -11,3 +11,6 @@ class Datatemplate:
     def __init__(self):
         self.api = elasticsearch_api.elasticsearch_api()
         self.json_path = os.getenv("JSON_TEMPLATE_PATH")
+    def get_data(self):
+        self.data = self.api.get_data(os.path.join(self.json_path, self.json_name),self.host) # Using the parent's methods and attributes
+
