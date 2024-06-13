@@ -6,56 +6,60 @@ from ELK_module import elasticsearch_api
 from dotenv import load_dotenv
 from .Datatemplate import Datatemplate  # Importing Datatemplate class from datatemplate.py
 import os
+from datetime import datetime
 load_dotenv()
 
 class JVMCPU(Datatemplate):  # Inheriting from Datatemplate
     def __init__(self, host):
         super().__init__()  # Calling the constructor of the parent class
-        self.json_name = "docker-cpu-usage.json"  # Overriding the json_name attribute
+        self.json_name = "jvm-cpu-usage.json"  # Overriding the json_name attribute
         self.host = host
 
     def prepare_plot(self):
         self.get_data()
+        print(self.data)
         # Extract the aggregation data
-        buckets = self.data['aggregations']['0']['buckets']
-        print(buckets)
-        # Transform data into a DataFrame
-        # Extracting data
-        records = []
-        for entry in buckets:
-            record = {
-                'timestamp': entry['key_as_string'],
-                'timestamp_ms': entry['key'],
-                'doc_count': entry['doc_count'],
-                'value_1': entry['1']['value'],
-                'value_2': entry['2']['value'],
-                'value_3': entry['3']['value'],
-                'value_4': entry['4']['value'],
-                'value_5': entry['5']['value'],
-                'value_6': entry['6']['value'],
-            }
-            records.append(record)
+        # Function to convert timestamp to human-readable format
+        # Function to convert timestamp to human-readable format
+        def convert_timestamp(timestamp):
+            return datetime.utcfromtimestamp(timestamp / 1000).strftime('%Y-%m-%d %H:%M:%S')
 
-        # Creating the DataFrame
-        df = pd.DataFrame(records)
-        return df
+        # Extract data and organize it into a list of dictionaries
+        data_list = []
+        for bucket in self.data['aggregations']['0']['buckets']:
+            service = bucket['key']
+            for time_bucket in bucket['1']['buckets']:
+                timestamp = time_bucket['key']
+                doc_count = time_bucket['doc_count']
+                value_50 = time_bucket['2']['values'].get('50.0')  # Use .get() to handle None gracefully
+                if value_50 is not None:
+                    time_str = convert_timestamp(timestamp)
+                    data_list.append({
+                        "service": service,
+                        "time": time_str,
+                        "doc_count": doc_count,
+                        "value_50": value_50 * 100  # Convert to percentage
+                    })
 
-        # Convert timestamp to datetime
-        df['timestamp'] = pd.to_datetime(df['timestamp'])
+        # Create a pandas DataFrame
+        df = pd.DataFrame(data_list)
 
-        # Create the plot
-        self.fig, self.ax = plt.subplots(figsize=(12, 8))
-        # Plotting stacked bars
-        df.set_index('timestamp').plot(kind='bar', stacked=True, ax=self.ax, width=0.5)
+        # Convert 'time' column to datetime
+        df['time'] = pd.to_datetime(df['time'])
 
-        # Customize the plot
-        self.ax.set_xticklabels(df['timestamp'].dt.strftime('%Y-%m-%d %H:%M:%S'), rotation=45, ha='right')
-        self.ax.set_xlabel('Time')
-        self.ax.set_ylabel('Usage (%)')
-        self.ax.set_title('CPU Usage Over Time ({})'.format(self.host))
-        self.ax.yaxis.set_major_formatter(PercentFormatter(1.0))
-        self.ax.legend(loc='lower left', title='CPU Usage')  # Set legend to bottom left
-        self.fig.tight_layout()
+        # Plotting the data
+        plt.figure(figsize=(10, 5))
+
+        for service in df['service'].unique():
+            service_data = df[df['service'] == service]
+            plt.plot(service_data['time'], service_data['value_50'], label=service)
+
+        plt.xlabel('Time')
+        plt.ylabel('50th Percentile Value (%)')
+        plt.title('50th Percentile Values Over Time (as %)')
+        plt.legend()
+        plt.xticks(rotation=45)
+        plt.tight_layout()
 
     def show_plot(self):
         if self.fig is not None and self.ax is not None:
@@ -75,7 +79,6 @@ class JVMCPU(Datatemplate):  # Inheriting from Datatemplate
         else:
             print("Plot has not been prepared. Call prepare_plot() first.")
 
-
 class JVMMemory(Datatemplate):  # Inheriting from Datatemplate
     def __init__(self, host):
         super().__init__()  # Calling the constructor of the parent class
@@ -84,64 +87,58 @@ class JVMMemory(Datatemplate):  # Inheriting from Datatemplate
 
     def prepare_plot(self):
         self.get_data()
-        # Extract the aggregation data
-        buckets = self.data['aggregations']['0']['buckets']
+        
+        # Function to convert timestamp to human-readable format
+        def convert_timestamp(timestamp):
+            return datetime.utcfromtimestamp(timestamp / 1000).strftime('%Y-%m-%d %H:%M:%S')
 
-        # Extracting data
-        records = []
-        for entry in buckets:
-            for bucket in entry['1']['buckets']:
-                record = {
-                    'service_name': entry['key'],
-                    'total_doc_count': entry['doc_count'],
-                    'timestamp': bucket['key_as_string'],
-                    'timestamp_ms': bucket['key'],
-                    'doc_count': bucket['doc_count'],
-                    'avg_memory_usage_bytes': bucket['2']['value']
-                }
-                records.append(record)
+        # Extract data and organize it into a list of dictionaries
+        data_list = []
+        for bucket in self.data['aggregations']['0']['buckets']:
+            timestamp = bucket['key']
+            for service_bucket in bucket['1']['buckets']:
+                service = service_bucket['key']
+                avg_memory_usage_bytes = service_bucket['2']['value']
+                time_str = convert_timestamp(timestamp)
+                # Convert bytes to GB
+                avg_memory_usage_gb = avg_memory_usage_bytes / (1024 ** 3)
+                data_list.append({
+                    "service": service,
+                    "time": time_str,
+                    "avg_memory_usage_gb": avg_memory_usage_gb
+                })
 
-        # Creating the DataFrame
-        df = pd.DataFrame(records)
+        # Create a pandas DataFrame
+        df = pd.DataFrame(data_list)
 
-        # Convert timestamp to datetime
-        df['timestamp'] = pd.to_datetime(df['timestamp'])
+        # Convert 'time' column to datetime
+        df['time'] = pd.to_datetime(df['time'])
 
-        # Convert value from bytes to GB
-        df['value'] = df['avg_memory_usage_bytes'] / (1024 ** 3)
-
-        # Pivot the DataFrame
-        df_pivot = df.pivot(index='timestamp', columns='service_name', values='value')
+        # Pivot the DataFrame for stacked area chart
+        df_pivot = df.pivot(index='time', columns='service', values='avg_memory_usage_gb')
 
         # Plot stacked area chart
-        self.fig, self.ax = plt.subplots(figsize=(14, 8))
-        df_pivot.plot(kind='area', stacked=True, ax=self.ax)
+        plt.figure(figsize=(14, 8))
+        df_pivot.plot(kind='area', stacked=True)
 
         # Customize the plot
-        self.ax.set_title('Services Memory Usage')
-        self.ax.set_xlabel('Timestamp')
-        self.ax.set_ylabel('Memory (GB)')
-        self.ax.legend(loc='lower left', title='Services')  # Set legend to bottom left
-        self.fig.tight_layout()
+        plt.xlabel('Time')
+        plt.ylabel('Memory Usage (GB)')
+        plt.title('Memory Usage Over Time (GB)')
+        plt.legend(title='Service', loc='upper left')
+        plt.xticks(rotation=45)
+        plt.tight_layout()
 
     def show_plot(self):
-        if self.fig is not None and self.ax is not None:
-            plt.show()
-        else:
-            print("Plot has not been prepared. Call prepare_plot() first.")
+        plt.show()
 
-    def save_plot(self, output_dir='output', filename='Services_memory_usage_over_time_.png'):
-        if self.fig is not None and self.ax is not None:
-            # Ensure the output directory exists
-            if not os.path.exists(output_dir):
-                os.makedirs(output_dir)
-            # Save plot to the output directory
-            filename = 'Services_memory_usage_over_time_{}.png'.format(self.host)
-            output_path = os.path.join(output_dir, filename)
-            self.fig.savefig(output_path)
-        else:
-            print("Plot has not been prepared. Call prepare_plot() first.")
-
+    def save_plot(self, output_dir='output', filename='JVMMemory_usage_area_stacked.png'):
+        # Ensure the output directory exists
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+        # Save plot to the output directory
+        output_path = os.path.join(output_dir, filename)
+        plt.savefig(output_path)
 # Example usage:
 # docker_cpu = DockerCPU(host='my_host')
 # docker_cpu.prepare_plot()

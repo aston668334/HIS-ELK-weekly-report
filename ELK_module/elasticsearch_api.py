@@ -22,7 +22,7 @@ class elasticsearch_api:
 
         # Calculate timestamps for gte and lte
         now = datetime.utcnow()  # use UTC time
-        week_ago = now - timedelta(weeks=1)
+        week_ago = now - timedelta(days=1)
 
         # Format timestamps as strings
         gte_timestamp = week_ago.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
@@ -38,7 +38,7 @@ class elasticsearch_api:
         # Convert the modified query string back to JSON
         query = json.loads(query_str)
 
-        response = self.client.search(index="*", body=query)
+        response = self.client.search(**query)
 
         return response
 

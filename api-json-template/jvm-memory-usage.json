@@ -1,36 +1,28 @@
 {
   "aggs": {
     "0": {
-      "terms": {
-        "field": "service.name",
-        "order": {
-          "2": "desc"
-        },
-        "size": 10,
-        "shard_size": 25
+      "date_histogram": {
+        "field": "@timestamp",
+        "fixed_interval": "6h",
+        "time_zone": "America/Asuncion",
+        "min_doc_count": 1
       },
       "aggs": {
         "1": {
-          "date_histogram": {
-            "field": "@timestamp",
-            "fixed_interval": "6h",
-            "time_zone": "America/Asuncion",
-            "extended_bounds": {
-              "min": 1717785141418,
-              "max": 1717792341418
-            }
+          "terms": {
+            "field": "container.name",
+            "order": {
+              "2": "desc"
+            },
+            "size": 5,
+            "shard_size": 25
           },
           "aggs": {
             "2": {
-              "avg": {
-                "field": "system.process.cgroup.memory.mem.usage.bytes"
+              "max": {
+                "field": "docker.memory.usage.total"
               }
             }
-          }
-        },
-        "2": {
-          "avg": {
-            "field": "system.process.cgroup.memory.mem.usage.bytes"
           }
         }
       }
@@ -43,7 +35,59 @@
       "format": "date_time"
     },
     {
+      "field": "docker.container.created",
+      "format": "date_time"
+    },
+    {
+      "field": "docker.healthcheck.event.end_date",
+      "format": "date_time"
+    },
+    {
+      "field": "docker.healthcheck.event.start_date",
+      "format": "date_time"
+    },
+    {
+      "field": "event.created",
+      "format": "date_time"
+    },
+    {
       "field": "event.ingested",
+      "format": "date_time"
+    },
+    {
+      "field": "postgresql.activity.backend_start",
+      "format": "date_time"
+    },
+    {
+      "field": "postgresql.activity.query_start",
+      "format": "date_time"
+    },
+    {
+      "field": "postgresql.activity.state_change",
+      "format": "date_time"
+    },
+    {
+      "field": "postgresql.activity.transaction_start",
+      "format": "date_time"
+    },
+    {
+      "field": "postgresql.bgwriter.stats_reset",
+      "format": "date_time"
+    },
+    {
+      "field": "postgresql.database.stats_reset",
+      "format": "date_time"
+    },
+    {
+      "field": "process.cpu.start_time",
+      "format": "date_time"
+    },
+    {
+      "field": "system.process.cpu.start_time",
+      "format": "date_time"
+    },
+    {
+      "field": "updated_at",
       "format": "date_time"
     }
   ],
@@ -59,6 +103,20 @@
     "bool": {
       "must": [],
       "filter": [
+        {
+          "bool": {
+            "should": [
+              {
+                "term": {
+                  "data_stream.dataset": {
+                    "value": "docker.memory"
+                  }
+                }
+              }
+            ],
+            "minimum_should_match": 1
+          }
+        },
         {
           "match_phrase": {
             "host.name": "this_should_be_server_hostname"
